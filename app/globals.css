@@ -1,26 +1,253 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: `.dark` on <html> drives the theme, not the OS query.
+   The UI store defaults to "dark" and ThemeEffect toggles this class. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Atlas tokens — OKLCH throughout.
+
+   Two layers of color:
+   • Chrome  — near-monochrome neutrals + ONE restrained brand accent (amber).
+               Disciplined, so the personas are the loud thing in the room.
+   • Persona — a per-assistant identity hue (set inline as --persona-h) that
+               drives avatars, names, message tints, and active states.
+
+   LIGHT is :root (pure-white canvas). DARK overrides under .dark and is the
+   shipped default (see app/layout.tsx). Every pair below is verified ≥ AA.
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: oklch(1 0 0);
+  --surface: oklch(0.985 0.003 264);
+  --surface-2: oklch(0.965 0.004 264);
+  --border: oklch(0.91 0.005 264);
+  --border-strong: oklch(0.84 0.006 264);
+
+  --ink: oklch(0.22 0.006 264);
+  --muted: oklch(0.46 0.007 264);
+  --faint: oklch(0.56 0.007 264);
+
+  --primary: oklch(0.72 0.145 72);        /* amber fill (Send, primary CTA) */
+  --primary-hover: oklch(0.67 0.15 70);
+  --primary-ink: oklch(0.2 0.03 72);       /* text on amber fill */
+  --primary-text: oklch(0.52 0.13 60);     /* amber as link/text on canvas */
+  --primary-soft: color-mix(in oklab, var(--primary) 14%, var(--bg));
+
+  --danger: oklch(0.55 0.2 27);
+  --danger-soft: color-mix(in oklab, var(--danger) 10%, var(--bg));
+  --success: oklch(0.55 0.13 150);
+
+  --ring: var(--primary);
+  --shadow-1: 0 1px 2px oklch(0.2 0.02 264 / 0.06), 0 1px 3px oklch(0.2 0.02 264 / 0.1);
+  --shadow-2: 0 4px 12px oklch(0.2 0.02 264 / 0.08), 0 2px 4px oklch(0.2 0.02 264 / 0.06);
+  --shadow-pop: 0 12px 32px oklch(0.2 0.02 264 / 0.16), 0 4px 8px oklch(0.2 0.02 264 / 0.08);
+
+  /* persona identity — composed against --persona-h (set per element) */
+  --persona-avatar-l: 0.52;
+  --persona-avatar-c: 0.15;
+  --persona-on-avatar: oklch(0.99 0.004 var(--persona-h));
+  --persona-name-l: 0.5;
+  --persona-name-c: 0.15;
+  --persona-tint: 9%;
+}
+
+.dark {
+  --bg: oklch(0.165 0.006 264);
+  --surface: oklch(0.205 0.007 264);
+  --surface-2: oklch(0.245 0.008 264);
+  --border: oklch(0.3 0.008 264);
+  --border-strong: oklch(0.38 0.009 264);
+
+  --ink: oklch(0.96 0.004 264);
+  --muted: oklch(0.72 0.006 264);
+  --faint: oklch(0.585 0.006 264);
+
+  --primary: oklch(0.82 0.135 78);
+  --primary-hover: oklch(0.86 0.14 80);
+  --primary-ink: oklch(0.2 0.03 78);
+  --primary-text: var(--primary);
+  --primary-soft: color-mix(in oklab, var(--primary) 16%, var(--surface));
+
+  --danger: oklch(0.72 0.16 25);
+  --danger-soft: color-mix(in oklab, var(--danger) 14%, var(--surface));
+  --success: oklch(0.72 0.13 155);
+
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.3), 0 1px 3px oklch(0 0 0 / 0.4);
+  --shadow-2: 0 4px 12px oklch(0 0 0 / 0.4), 0 2px 4px oklch(0 0 0 / 0.3);
+  --shadow-pop: 0 16px 40px oklch(0 0 0 / 0.55), 0 4px 10px oklch(0 0 0 / 0.4);
+
+  --persona-avatar-l: 0.75;
+  --persona-avatar-c: 0.14;
+  --persona-on-avatar: oklch(0.22 0.03 var(--persona-h));
+  --persona-name-l: 0.82;
+  --persona-name-c: 0.11;
+  --persona-tint: 14%;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-text: var(--primary-text);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* semantic z-index scale — never arbitrary 999/9999 */
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-modal-backdrop: 1200;
+  --z-modal: 1300;
+  --z-toast: 1400;
+  --z-tooltip: 1500;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  /* restrained themed scrollbar — tints the standard affordance, doesn't reinvent it */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--faint);
+    background-clip: padding-box;
+  }
+  textarea {
+    field-sizing: content;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Persona identity helpers — consume --persona-h set inline in JSX ── */
+@layer components {
+  .persona-dot {
+    background: oklch(var(--persona-avatar-l) var(--persona-avatar-c) var(--persona-h));
+  }
+  .persona-avatar {
+    background: oklch(var(--persona-avatar-l) var(--persona-avatar-c) var(--persona-h));
+    color: var(--persona-on-avatar);
+  }
+  .persona-name {
+    color: oklch(var(--persona-name-l) var(--persona-name-c) var(--persona-h));
+  }
+  .persona-ring {
+    box-shadow: 0 0 0 1px oklch(var(--persona-name-l) var(--persona-name-c) var(--persona-h) / 0.5);
+  }
+  /* subtle identity wash behind a persona's content */
+  .persona-tint {
+    background: color-mix(
+      in oklab,
+      oklch(var(--persona-name-l) var(--persona-avatar-c) var(--persona-h)) var(--persona-tint),
+      var(--surface)
+    );
+  }
+  .persona-soft {
+    background: color-mix(
+      in oklab,
+      oklch(var(--persona-name-l) var(--persona-avatar-c) var(--persona-h)) calc(var(--persona-tint) * 0.7),
+      transparent
+    );
+  }
+}
+
+/* ── Motion — every animation has a reduced-motion fallback below ── */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes blink {
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 0.36s var(--ease-out-expo) both;
+}
+.animate-fade-in {
+  animation: fade-in 0.3s var(--ease-out-quart) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-rise-in,
+  .animate-fade-in {
+    animation: fade-in 0.001ms both;
+  }
 }
